@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.env
+*.egg-info/
+dist/
+.pytest_cache/
+.chroma/
+
+# Node
+node_modules/
+.next/
+.vercel/
+
+# Misc
+.DS_Store
+*.log
