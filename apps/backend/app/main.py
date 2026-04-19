@@ -10,6 +10,7 @@ from app.repositories.audit import SupabaseAuditRepository
 from app.api.routes import ingest, planogram, audit
 import app.services.generation as gen_service
 import app.services.audit as audit_service
+import app.services.ingestion as ingestion_service
 
 
 @asynccontextmanager
@@ -18,6 +19,8 @@ async def lifespan(app: FastAPI):
         settings.supabase_url,
         settings.supabase_service_role_key,
     )
+    gen_service.db = db
+    ingestion_service.db = db
     gen_service.brand_repo = SupabaseBrandRepository(db)
     gen_service.sales_repo = SupabaseSalesRepository(db)
     gen_service.planogram_repo = SupabasePlanogramRepository(db)

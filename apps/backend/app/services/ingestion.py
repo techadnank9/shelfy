@@ -8,6 +8,8 @@ from app.models.schemas import Product
 
 anthropic_client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 
+db = None  # injected at startup
+
 EXTRACT_SYSTEM = """You are a retail planogram analyst. Extract structured product and brand rule data from the provided planogram document.
 
 Return ONLY valid JSON with this exact structure:
@@ -61,7 +63,7 @@ async def parse_planogram_pdf(pdf_bytes: bytes, brand_id: str) -> dict:
         for p in data.get("products", [])
     ]
 
-    await embed_products(products)
+    await embed_products(products, db)
 
     return {
         "brand_rules": data.get("brand_rules", {}),

@@ -12,6 +12,7 @@ anthropic_client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
 planogram_repo: SupabasePlanogramRepository = None  # type: ignore
 brand_repo: SupabaseBrandRepository = None           # type: ignore
 sales_repo: SupabaseSalesRepository = None           # type: ignore
+db = None  # injected at startup
 
 TOOLS = [
     {
@@ -115,7 +116,7 @@ async def _execute_tool(tool_name: str, tool_input: dict) -> str:
         return json.dumps([s.model_dump() for s in sales])
 
     if tool_name == "search_similar_products":
-        results = await search_similar(tool_input["query"], tool_input.get("top_k", 5))
+        results = await search_similar(tool_input["query"], db, top_k=tool_input.get("top_k", 5))
         return json.dumps(results)
 
     return json.dumps({"error": f"Unknown tool: {tool_name}"})
