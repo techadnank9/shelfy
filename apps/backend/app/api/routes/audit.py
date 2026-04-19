@@ -1,3 +1,4 @@
+import uuid
 from fastapi import APIRouter, UploadFile, File, Form, Request
 from app.models.schemas import AuditResponse
 from app.services import audit as audit_service
@@ -17,11 +18,11 @@ async def run_audit(
     planogram = await planogram_repo.get(planogram_id)
 
     photo_bytes = await file.read()
-    storage_path = f"{planogram_id}/{file.filename}"
+    storage_path = f"{planogram_id}/{uuid.uuid4()}_{file.filename}"
     await db.storage.from_("shelf-photos").upload(
         storage_path, photo_bytes, {"content-type": file.content_type or "image/jpeg"}
     )
-    photo_url = db.storage.from_("shelf-photos").get_public_url(storage_path)
+    photo_url = await db.storage.from_("shelf-photos").get_public_url(storage_path)
 
     result = await audit_service.run_shelf_audit(planogram_id, photo_url, planogram)
     return AuditResponse(result=result)

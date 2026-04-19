@@ -113,7 +113,11 @@ async def run_shelf_audit(
     )
 
     raw = response.content[0].text
-    data = json.loads(raw)
+    if "```" in raw:
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    data = json.loads(raw.strip())
     detected = data.get("detected_products", [])
 
     score, discrepancies = _calculate_compliance(detected, planogram)

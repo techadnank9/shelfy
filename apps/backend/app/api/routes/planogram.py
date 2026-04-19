@@ -5,6 +5,18 @@ from app.services import generation as gen_service
 router = APIRouter()
 
 
+@router.get("/", response_model=list[dict])
+async def list_planograms(request: Request):
+    result = (
+        await request.app.state.db.table("planograms")
+        .select("id, brand_id, store_format, status, generated_at")
+        .order("generated_at", desc=True)
+        .limit(20)
+        .execute()
+    )
+    return result.data
+
+
 @router.post("/generate", response_model=GenerateResponse)
 async def generate_planogram(body: GenerateRequest):
     planogram = await gen_service.generate_planogram(

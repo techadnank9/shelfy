@@ -43,7 +43,11 @@ async def parse_planogram_pdf(pdf_bytes: bytes, brand_id: str) -> dict:
     )
 
     raw = message.content[0].text
-    data = json.loads(raw)
+    if "```" in raw:
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+    data = json.loads(raw.strip())
 
     products = [
         Product(
