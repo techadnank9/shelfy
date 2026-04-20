@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 import re
@@ -5,6 +6,7 @@ from io import BytesIO
 
 import anthropic
 import httpx
+from ddgs import DDGS
 from PIL import Image, ImageDraw, ImageFont
 
 from app.config import settings
@@ -62,32 +64,28 @@ def _shrink_for_claude(img: Image.Image) -> tuple[Image.Image, bytes]:
         scale *= 0.75
 
 
-async def _fetch_product_image(name: str, sku: str, client: httpx.AsyncClient) -> Image.Image | None:
-    """Try to fetch a product image from DuckDuckGo image search."""
-    query = f"{name} product"
+def _search_image_url(query: str) -> str | None:
+    """Synchronous DuckDuckGo image search — run in executor."""
     try:
-        r = await client.get(
-            "https://duckduckgo.com/",
-            params={"q": query, "iax": "images", "ia": "images"},
-            timeout=8,
-        )
-        m = re.search(r'vqd=([\d-]+)', r.text)
-        if not m:
+        with DDGS() as ddgs:
+            results = list(ddgs.images(query, max_results=1))
+        return results[0]["image"] if results else None
+    except Exception:
+        return None
+
+
+async def _fetch_product_image(name: str, sku: str) -> Image.Image | None:
+    """Fetch a product image: search DDG then download."""
+    try:
+        query = f"{name} product"
+        loop = asyncio.get_event_loop()
+        url = await loop.run_in_executor(None, _search_image_url, query)
+        if not url:
             return None
-        vqd = m.group(1)
-        r2 = await client.get(
-            "https://duckduckgo.com/i.js",
-            params={"l": "us-en", "o": "json", "q": query, "vqd": vqd, "f": ",,,,,", "p": "1"},
-            headers={"Referer": "https://duckduckgo.com/"},
-            timeout=8,
-        )
-        results = r2.json().get("results", [])
-        if not results:
-            return None
-        img_url = results[0]["image"]
-        r3 = await client.get(img_url, timeout=8, follow_redirects=True)
-        r3.raise_for_status()
-        return Image.open(BytesIO(r3.content)).convert("RGBA")
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            r = await client.get(url)
+            r.raise_for_status()
+        return Image.open(BytesIO(r.content)).convert("RGBA")
     except Exception:
         return None
 
@@ -163,14 +161,16 @@ async def render_arrangement(image_bytes: bytes, products: list[Product]) -> byt
     # Build product lookup: sku → Product
     product_map = {p.sku: p for p in products}
 
-    # Fetch product images concurrently
-    async with httpx.AsyncClient() as client:
-        import asyncio
-        image_tasks = {
-            p["sku"]: _fetch_product_image(p.get("name", p["sku"]), p["sku"], client)
-            for p in valid
-        }
-        fetched = dict(zip(image_tasks.keys(), await asyncio.gather(*image_tasks.values())))
+    # Fetch product images concurrently — dedupe by SKU
+    unique_skus = {p["sku"]: p.get("name", p["sku"]) for p in valid}
+    results = await asyncio.gather(
+        *[_fetch_product_image(name, sku) for sku, name in unique_skus.items()],
+        return_exceptions=True,
+    )
+    fetched = {
+        sku: (r if isinstance(r, Image.Image) else None)
+        for sku, r in zip(unique_skus.keys(), results)
+    }
 
     try:
         font = ImageFont.truetype("/System/Library/Fonts/Helvetica.ttc", 13)
