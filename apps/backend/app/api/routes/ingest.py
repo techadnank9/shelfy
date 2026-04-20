@@ -32,6 +32,19 @@ async def list_guidelines(request: Request):
     return rows
 
 
+@router.get("/guidelines/{guideline_id}/products", response_model=dict)
+async def get_guideline_products(guideline_id: str, request: Request):
+    result = (
+        await request.app.state.db.table("brand_guidelines")
+        .select("parsed_json")
+        .eq("id", guideline_id)
+        .single()
+        .execute()
+    )
+    pj = result.data.get("parsed_json") or {}
+    return {"products": pj.get("products", [])}
+
+
 @router.post("/planogram", response_model=IngestResponse)
 async def ingest_planogram(
     request: Request,

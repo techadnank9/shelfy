@@ -7,7 +7,7 @@ from app.config import settings
 from app.repositories.brand import SupabaseBrandRepository, SupabaseSalesRepository
 from app.repositories.planogram import SupabasePlanogramRepository
 from app.repositories.audit import SupabaseAuditRepository
-from app.api.routes import ingest, planogram, audit
+from app.api.routes import ingest, planogram, audit, arrange
 import app.services.generation as gen_service
 import app.services.audit as audit_service
 import app.services.ingestion as ingestion_service
@@ -47,6 +47,7 @@ app.add_middleware(
 app.include_router(ingest.router, prefix="/ingest", tags=["ingest"])
 app.include_router(planogram.router, prefix="/planogram", tags=["planogram"])
 app.include_router(audit.router, prefix="/audit", tags=["audit"])
+app.include_router(arrange.router, prefix="/arrange", tags=["arrange"])
 
 
 @app.get("/health")
