@@ -1,5 +1,7 @@
+import base64
 import json
 import pdfplumber
+import fitz  # pymupdf
 import anthropic
 from io import BytesIO
 from app.config import settings
@@ -34,14 +36,16 @@ Return ONLY valid JSON with this exact structure:
 async def parse_planogram_pdf(pdf_bytes: bytes, brand_id: str) -> dict:
     text = _extract_pdf_text(pdf_bytes)
 
+    if len(text.strip()) < 100:
+        content = _build_vision_content(pdf_bytes)
+    else:
+        content = [{"type": "text", "text": f"Extract planogram data from this document:\n\n{text[:8000]}"}]
+
     message = await anthropic_client.messages.create(
         model="claude-sonnet-4-5",
         max_tokens=4096,
         system=EXTRACT_SYSTEM,
-        messages=[{
-            "role": "user",
-            "content": f"Extract planogram data from this document:\n\n{text[:8000]}"
-        }],
+        messages=[{"role": "user", "content": content}],
     )
 
     raw = message.content[0].text
@@ -81,3 +85,17 @@ def _extract_pdf_text(pdf_bytes: bytes) -> str:
             if page_text:
                 text_parts.append(page_text)
     return "\n".join(text_parts)
+
+
+def _build_vision_content(pdf_bytes: bytes) -> list:
+    doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+    content = [{"type": "text", "text": "Extract planogram data from these pages:"}]
+    for page in doc:
+        pix = page.get_pixmap(dpi=150)
+        img_b64 = base64.standard_b64encode(pix.tobytes("png")).decode()
+        content.append({
+            "type": "image",
+            "source": {"type": "base64", "media_type": "image/png", "data": img_b64},
+        })
+    doc.close()
+    return content

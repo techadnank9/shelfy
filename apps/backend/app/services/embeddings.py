@@ -5,13 +5,20 @@ _ef = ONNXMiniLM_L6_V2()
 
 
 def _generate(texts: list[str]) -> list[list[float]]:
-    return [list(e) for e in _ef(texts)]
+    return [[float(v) for v in e] for e in _ef(texts)]
 
 
 async def embed_products(products: list[Product], db) -> None:
     if not products:
         return
-    texts = [f"{p.name} {p.category} {p.brand_tier} {p.sku}" for p in products]
+    seen = set()
+    unique = []
+    for p in products:
+        key = (p.sku, p.brand_id)
+        if key not in seen:
+            seen.add(key)
+            unique.append(p)
+    texts = [f"{p.name} {p.category} {p.brand_tier} {p.sku}" for p in unique]
     embeddings = _generate(texts)
     rows = [
         {
@@ -22,7 +29,7 @@ async def embed_products(products: list[Product], db) -> None:
             "brand_tier": p.brand_tier,
             "embedding": emb,
         }
-        for p, emb in zip(products, embeddings)
+        for p, emb in zip(unique, embeddings)
     ]
     await db.table("product_embeddings").upsert(rows).execute()
 
