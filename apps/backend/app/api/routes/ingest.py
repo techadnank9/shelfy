@@ -41,6 +41,31 @@ async def list_guidelines(request: Request):
     return rows
 
 
+@router.delete("/guidelines/cleanup", response_model=dict)
+async def cleanup_guidelines(request: Request):
+    """Delete zero-product entries and duplicates, keeping only the latest per display name."""
+    db = request.app.state.db
+    result = (
+        await db.table("brand_guidelines")
+        .select("id, raw_file_url, created_at, parsed_json")
+        .order("created_at", desc=True)
+        .execute()
+    )
+    seen: set[str] = set()
+    to_delete: list[str] = []
+    for r in result.data:
+        pj = r.get("parsed_json") or {}
+        products_count = len(pj.get("products", []))
+        name = _guideline_display_name(pj, r.get("raw_file_url") or "")
+        if products_count == 0 or name in seen:
+            to_delete.append(r["id"])
+        else:
+            seen.add(name)
+    if to_delete:
+        await db.table("brand_guidelines").delete().in_("id", to_delete).execute()
+    return {"deleted": len(to_delete), "kept": len(seen)}
+
+
 @router.get("/guidelines/{guideline_id}/products", response_model=dict)
 async def get_guideline_products(guideline_id: str, request: Request):
     result = (
