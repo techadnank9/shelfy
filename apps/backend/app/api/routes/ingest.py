@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, UploadFile, File, Form, Request
+from fastapi import APIRouter, UploadFile, File, Form, Request, HTTPException
 from app.models.schemas import IngestResponse
 from app.services import ingestion as ingestion_service
 
@@ -41,6 +41,8 @@ async def get_guideline_products(guideline_id: str, request: Request):
         .single()
         .execute()
     )
+    if result.data is None:
+        raise HTTPException(status_code=404, detail="Guideline not found")
     pj = result.data.get("parsed_json") or {}
     return {"products": pj.get("products", [])}
 

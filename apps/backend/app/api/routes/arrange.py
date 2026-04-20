@@ -21,6 +21,8 @@ async def arrange_shelf(
         .single()
         .execute()
     )
+    if result.data is None:
+        raise HTTPException(status_code=404, detail="Guideline not found")
     pj = result.data.get("parsed_json") or {}
     raw_products = pj.get("products", [])
 
@@ -29,14 +31,15 @@ async def arrange_shelf(
 
     products = [
         Product(
-            id=f"synthetic-{p['sku']}",
+            id=f"synthetic-{p.get('sku', '')}",
             brand_id=guideline_id,
-            sku=p["sku"],
-            name=p["name"],
+            sku=p.get("sku", ""),
+            name=p.get("name", ""),
             category=p.get("category", "skincare"),
             brand_tier=p.get("brand_tier", "secondary"),
         )
         for p in raw_products
+        if p.get("sku")  # skip entries without SKU
     ]
 
     image_bytes = await file.read()

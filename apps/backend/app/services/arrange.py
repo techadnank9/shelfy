@@ -40,12 +40,14 @@ async def render_arrangement(image_bytes: bytes, products: list[Product]) -> byt
         raise ValueError("No products found for this guideline")
 
     try:
-        img = Image.open(BytesIO(image_bytes)).convert("RGB")
+        img = Image.open(BytesIO(image_bytes))
+        fmt = img.format
+        img = img.convert("RGB")
     except Exception:
         raise ValueError("Invalid image file")
 
     # Detect format for Claude Vision
-    fmt = img.format  # e.g., "PNG", "JPEG", "WEBP", None
+    # fmt is e.g., "PNG", "JPEG", "WEBP", None
     mime_map = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp", "GIF": "image/gif"}
     media_type = mime_map.get(fmt or "", "")
     if not media_type:
