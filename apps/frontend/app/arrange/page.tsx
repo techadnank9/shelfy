@@ -37,7 +37,8 @@ export default function ArrangePage() {
       const data = await arrangeShelf(guidelineId, file);
       setImageB64(data.image_b64);
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Arrangement failed");
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg === "Failed to fetch" ? "Cannot reach server — is the backend running?" : msg);
     } finally {
       setLoading(false);
     }

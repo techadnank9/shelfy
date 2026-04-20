@@ -1,5 +1,17 @@
 const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:8000";
 
+async function throwIfError(res: Response): Promise<void> {
+  if (res.ok) return;
+  let message: string;
+  try {
+    const body = await res.json();
+    message = body?.detail ?? JSON.stringify(body);
+  } catch {
+    message = await res.text().catch(() => res.statusText);
+  }
+  throw new Error(`${res.status}: ${message}`);
+}
+
 export interface Product {
   id: string;
   brand_id: string;
@@ -53,7 +65,7 @@ export async function ingestPlanogram(
   if (brandName) form.append("brand_name", brandName);
   form.append("file", file);
   const res = await fetch(`${BACKEND}/ingest/planogram`, { method: "POST", body: form });
-  if (!res.ok) throw new Error(await res.text());
+  await throwIfError(res);
   return res.json();
 }
 
@@ -66,13 +78,13 @@ export async function generatePlanogram(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ brand_id: brandId, store_format: storeFormat }),
   });
-  if (!res.ok) throw new Error(await res.text());
+  await throwIfError(res);
   return res.json();
 }
 
 export async function getPlanogram(planogramId: string): Promise<{ planogram: Planogram }> {
   const res = await fetch(`${BACKEND}/planogram/${planogramId}`);
-  if (!res.ok) throw new Error(await res.text());
+  await throwIfError(res);
   return res.json();
 }
 
@@ -80,7 +92,7 @@ export async function listPlanograms(): Promise<{
   id: string; brand_id: string; store_format: string; status: string; generated_at: string; display_name: string;
 }[]> {
   const res = await fetch(`${BACKEND}/planogram/`);
-  if (!res.ok) throw new Error(await res.text());
+  await throwIfError(res);
   return res.json();
 }
 
@@ -88,7 +100,7 @@ export async function listGuidelines(): Promise<{
   id: string; brand_id: string; raw_file_url: string; created_at: string; products_count: number; display_name: string;
 }[]> {
   const res = await fetch(`${BACKEND}/ingest/guidelines`);
-  if (!res.ok) throw new Error(await res.text());
+  await throwIfError(res);
   return res.json();
 }
 
@@ -100,13 +112,13 @@ export async function runAudit(
   form.append("planogram_id", planogramId);
   form.append("file", file);
   const res = await fetch(`${BACKEND}/audit/`, { method: "POST", body: form });
-  if (!res.ok) throw new Error(await res.text());
+  await throwIfError(res);
   return res.json();
 }
 
 export async function listGuidelineProducts(guidelineId: string): Promise<{ products: Product[] }> {
   const res = await fetch(`${BACKEND}/ingest/guidelines/${guidelineId}/products`);
-  if (!res.ok) throw new Error(await res.text());
+  await throwIfError(res);
   return res.json();
 }
 
@@ -115,6 +127,6 @@ export async function arrangeShelf(guidelineId: string, file: File): Promise<{ i
   form.append("guideline_id", guidelineId);
   form.append("file", file);
   const res = await fetch(`${BACKEND}/arrange/`, { method: "POST", body: form });
-  if (!res.ok) throw new Error(await res.text());
+  await throwIfError(res);
   return res.json();
 }
