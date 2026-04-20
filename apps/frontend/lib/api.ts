@@ -45,10 +45,12 @@ export interface AuditResult {
 
 export async function ingestPlanogram(
   brandId: string,
-  file: File
+  file: File,
+  brandName?: string,
 ): Promise<{ guideline_id: string; brand_id: string; products_parsed: number; parsed_products: Product[] }> {
   const form = new FormData();
   form.append("brand_id", brandId);
+  if (brandName) form.append("brand_name", brandName);
   form.append("file", file);
   const res = await fetch(`${BACKEND}/ingest/planogram`, { method: "POST", body: form });
   if (!res.ok) throw new Error(await res.text());

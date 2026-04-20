@@ -9,6 +9,7 @@ const DEMO_BRAND_ID = "11111111-1111-1111-1111-111111111111";
 
 export default function IngestPage() {
   const [file, setFile] = useState<File | null>(null);
+  const [brandName, setBrandName] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
     guideline_id: string;
@@ -22,7 +23,7 @@ export default function IngestPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await ingestPlanogram(DEMO_BRAND_ID, file);
+      const data = await ingestPlanogram(DEMO_BRAND_ID, file, brandName || undefined);
       setResult(data);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Upload failed");
@@ -42,6 +43,17 @@ export default function IngestPage() {
 
       <Card>
         <CardContent className="pt-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Brand Name</label>
+            <input
+              type="text"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+              placeholder="e.g. Jo Malone, Lumiskin"
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
+              disabled={loading}
+            />
+          </div>
           <FileUpload
             accept={{ "application/pdf": [".pdf"], "image/*": [".png", ".jpg", ".jpeg"] }}
             label="Drop your planogram PDF or image here, or click to browse"
@@ -74,8 +86,8 @@ export default function IngestPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {result.parsed_products.map((p) => (
-                    <tr key={p.sku} className="border-b last:border-0">
+                  {result.parsed_products.map((p, i) => (
+                    <tr key={`${p.sku}-${i}`} className="border-b last:border-0">
                       <td className="py-2 pr-4 font-mono">{p.sku}</td>
                       <td className="py-2 pr-4">{p.name}</td>
                       <td className="py-2 pr-4">{p.brand_tier}</td>
