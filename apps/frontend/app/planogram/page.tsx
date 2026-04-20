@@ -66,8 +66,8 @@ export default function PlanogramPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center justify-between">
-              <span>{format} store — {planogram.positions.length} positions</span>
-              <span className="text-xs font-mono text-gray-400">{planogram.id}</span>
+              <span>{format.charAt(0) + format.slice(1).toLowerCase()} store — {planogram.positions.length} positions</span>
+              <span className="text-xs text-gray-400">{new Date(planogram.generated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>

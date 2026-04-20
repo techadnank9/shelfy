@@ -6,6 +6,17 @@ from app.services import ingestion as ingestion_service
 router = APIRouter()
 
 
+def _guideline_display_name(raw_file_url: str) -> str:
+    from urllib.parse import unquote, urlparse
+    path = urlparse(raw_file_url).path
+    filename = unquote(path.rsplit("/", 1)[-1])
+    # strip uuid prefix: storage path is {uuid}_{original_filename}
+    if "_" in filename:
+        filename = filename.split("_", 1)[1]
+    name = filename.rsplit(".", 1)[0]
+    return name.replace("-", " ").replace("_", " ").title() or "Untitled"
+
+
 @router.get("/guidelines", response_model=list[dict])
 async def list_guidelines(request: Request):
     result = (
@@ -15,12 +26,8 @@ async def list_guidelines(request: Request):
         .limit(20)
         .execute()
     )
-    seen = set()
     rows = []
     for r in result.data:
-        if r["brand_id"] in seen:
-            continue
-        seen.add(r["brand_id"])
         pj = r.get("parsed_json") or {}
         rows.append({
             "id": r["id"],
@@ -28,6 +35,7 @@ async def list_guidelines(request: Request):
             "raw_file_url": r["raw_file_url"],
             "created_at": r["created_at"],
             "products_count": len(pj.get("products", [])),
+            "display_name": _guideline_display_name(r.get("raw_file_url") or ""),
         })
     return rows
 

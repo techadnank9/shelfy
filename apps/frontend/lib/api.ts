@@ -75,7 +75,7 @@ export async function getPlanogram(planogramId: string): Promise<{ planogram: Pl
 }
 
 export async function listPlanograms(): Promise<{
-  id: string; brand_id: string; store_format: string; status: string; generated_at: string;
+  id: string; brand_id: string; store_format: string; status: string; generated_at: string; display_name: string;
 }[]> {
   const res = await fetch(`${BACKEND}/planogram/`);
   if (!res.ok) throw new Error(await res.text());
@@ -83,7 +83,7 @@ export async function listPlanograms(): Promise<{
 }
 
 export async function listGuidelines(): Promise<{
-  id: string; brand_id: string; raw_file_url: string; created_at: string; products_count: number;
+  id: string; brand_id: string; raw_file_url: string; created_at: string; products_count: number; display_name: string;
 }[]> {
   const res = await fetch(`${BACKEND}/ingest/guidelines`);
   if (!res.ok) throw new Error(await res.text());

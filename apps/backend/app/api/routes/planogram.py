@@ -14,7 +14,14 @@ async def list_planograms(request: Request):
         .limit(20)
         .execute()
     )
-    return result.data
+    rows = []
+    for r in result.data:
+        from datetime import datetime, timezone
+        dt = datetime.fromisoformat(r["generated_at"].replace("Z", "+00:00"))
+        date_str = dt.strftime("%b %-d, %Y")
+        fmt = r["store_format"].capitalize()
+        rows.append({**r, "display_name": f"{fmt} store — {date_str}"})
+    return rows
 
 
 @router.post("/generate", response_model=GenerateResponse)

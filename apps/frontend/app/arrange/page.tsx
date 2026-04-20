@@ -10,6 +10,7 @@ interface Guideline {
   brand_id: string;
   created_at: string;
   products_count: number;
+  display_name: string;
 }
 
 export default function ArrangePage() {
@@ -70,7 +71,7 @@ export default function ArrangePage() {
                 >
                   {guidelines.map((g) => (
                     <option key={g.id} value={g.id}>
-                      {g.brand_id.slice(0, 8)}… — {new Date(g.created_at).toLocaleDateString()}
+                      {g.display_name} — {new Date(g.created_at).toLocaleDateString()}
                     </option>
                   ))}
                 </select>
