@@ -101,3 +101,18 @@ export async function runAudit(
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
+export async function listGuidelineProducts(guidelineId: string): Promise<{ products: Product[] }> {
+  const res = await fetch(`${BACKEND}/ingest/guidelines/${guidelineId}/products`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function arrangeShelf(guidelineId: string, file: File): Promise<{ image_b64: string }> {
+  const form = new FormData();
+  form.append("guideline_id", guidelineId);
+  form.append("file", file);
+  const res = await fetch(`${BACKEND}/arrange/`, { method: "POST", body: form });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
