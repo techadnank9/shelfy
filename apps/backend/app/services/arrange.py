@@ -46,16 +46,24 @@ async def render_arrangement(image_bytes: bytes, products: list[Product]) -> byt
     except Exception:
         raise ValueError("Invalid image file")
 
-    # Detect format for Claude Vision
-    # fmt is e.g., "PNG", "JPEG", "WEBP", None
-    mime_map = {"JPEG": "image/jpeg", "PNG": "image/png", "WEBP": "image/webp", "GIF": "image/gif"}
-    media_type = mime_map.get(fmt or "", "")
-    if not media_type:
-        # Re-encode to JPEG for unknown formats
+    # Shrink image for Claude Vision (5 MB base64 limit → target ~3.5 MB raw)
+    MAX_BYTES = 3_500_000
+    quality = 85
+    scale = 1.0
+    while True:
+        if scale < 1.0:
+            new_w = int(img.width * scale)
+            new_h = int(img.height * scale)
+            resized = img.resize((new_w, new_h), Image.LANCZOS)
+        else:
+            resized = img
         buf = BytesIO()
-        img.save(buf, format="JPEG")
+        resized.save(buf, format="JPEG", quality=quality)
         image_bytes = buf.getvalue()
-        media_type = "image/jpeg"
+        if len(image_bytes) <= MAX_BYTES or scale < 0.2:
+            break
+        scale *= 0.75
+    media_type = "image/jpeg"
 
     img_b64 = base64.standard_b64encode(image_bytes).decode()
 
